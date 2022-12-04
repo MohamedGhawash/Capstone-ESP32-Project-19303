@@ -1,0 +1,136 @@
+#include "WiFi.h"
+#define WIFI_NETWORK "HAHA"
+#define WIFI_PASSWORD "10001000"
+#define WIFI_TIMEOUT_MS 20000
+#include "ThingSpeak.h"
+#define CHANNEL_ID 1959153
+#define CHANNEL_API_KEY "522XKH29JL0S4QJ2"
+
+WiFiClient client;
+
+
+void connectToWiFi() {
+  Serial.print("Connecting to WiFi");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_NETWORK, WIFI_PASSWORD);
+  unsigned long startAttemptTime = millis();
+
+  while(WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < WIFI_TIMEOUT_MS){
+    Serial.print(".");
+    delay(100);
+  }
+
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.println("Failed!");
+  }else{
+    Serial.print("connected!");
+    Serial.println(WiFi.localIP());
+    
+  }
+}
+
+
+#define anInput     35                                 
+#define co2Zero     55                        
+#include "DHT.h"
+#define DHTPIN 23  
+#define DHTTYPE DHT22 
+DHT dht(DHTPIN, DHTTYPE);
+
+
+void setup() 
+{
+  Serial.begin(9600);
+  connectToWiFi();
+  ThingSpeak.begin(client);
+  
+  pinMode(anInput,INPUT);                     //MQ135 analog feed set for input
+  Serial.begin(9600);                         //serial comms for debuging
+  dht.begin();
+}
+  
+void loop() 
+{
+  
+  int co2now[10];                               //int array for co2 readings
+  int co2raw = 0;                               //int for raw value of co2
+  int co2ppm = 0;                               //int for calculated ppm
+  int zzz = 0;                                  //int for averaging
+  int mmm = 0;
+  int co2raw2 = 0;                               
+  int co2ppm2 = 0;
+  int co2now2[10];                               
+  int co2rate = 0;
+
+
+  for (int x = 0;x<10;x++)  //samplpe co2 10x over 2 seconds
+  {                   
+    co2now[x]=analogRead(35);
+    co2now2[x]=analogRead(35);
+    delay(200);
+  }
+
+  for (int x = 0;x<10;x++)  //add samples together
+  {                     
+    zzz=zzz + co2now[x];
+    delay(5000);
+    mmm=mmm + co2now2[x];  
+  }
+  {
+  // Wait a few seconds between measurements.
+  delay(2000);
+
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Read temperature as Fahrenheit (isFahrenheit = true)
+  float f = dht.readTemperature(true);
+
+  // Check if any reads failed and exit early (to try again).
+  if (isnan(h) || isnan(t) || isnan(f)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+    // Compute heat index in Fahrenheit (the default)
+  float hif = dht.computeHeatIndex(f, h);
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hic = dht.computeHeatIndex(t, h, false);
+  co2raw = zzz/10;                            //divide samples by 10
+  co2ppm = co2raw - co2Zero;                 //get calculated ppm
+  co2raw2 = mmm/10;
+  co2ppm2 = co2raw2 - co2Zero;
+  co2rate = co2ppm2 - co2ppm;
+
+  
+ ThingSpeak.setField(1,t);
+ ThingSpeak.setField(3,co2rate);
+ ThingSpeak.writeFields(CHANNEL_ID, CHANNEL_API_KEY);
+
+  
+  
+  Serial.print(F("Humidity: "));
+  Serial.print(h);
+  Serial.print(F("%  Temperature: "));
+  Serial.print(t);
+  Serial.print(F("°C "));
+  Serial.print(f);
+  Serial.print(F("°F  Heat index: "));
+  Serial.print(hic);
+  Serial.print(F("°C "));
+  Serial.print(hif);
+  Serial.println(F("°F"));
+  Serial.print("AirQuality=");
+  Serial.print(co2ppm);  // prints the value read
+  Serial.println(" PPM");
+  Serial.print("AirQuality2=");
+  Serial.print(co2ppm2);  // prints the value read
+  Serial.println(" PPM");
+  Serial.print("rate=");
+  Serial.print(co2rate);
+  Serial.print("===========================");
+  delay(50);             
+
+}
+}
