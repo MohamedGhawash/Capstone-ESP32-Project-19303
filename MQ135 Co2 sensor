@@ -1,0 +1,54 @@
+#define anInput     35                                 
+#define co2Zero     55                        
+
+void setup() 
+{
+ 
+  pinMode(anInput,INPUT);                     //MQ135 analog feed set for input
+  Serial.begin(9600);                         //serial comms for debuging
+}
+
+void loop() 
+{
+  
+  int co2now[10];                               //int array for co2 readings
+  int co2raw = 0;                               //int for raw value of co2
+  int co2ppm = 0;                               //int for calculated ppm
+  int zzz = 0;                                  //int for averaging
+  int mmm = 0;
+  int co2raw2 = 0;                               
+  int co2ppm2 = 0;
+  int co2now2[10];                               
+  int co2rate = 0;
+
+
+  for (int x = 0;x<10;x++)  //samplpe co2 10x over 2 seconds
+  {                   
+    co2now[x]=analogRead(35);
+    co2now2[x]=analogRead(35);
+    delay(200);
+  }
+
+  for (int x = 0;x<10;x++)  //add samples together
+  {                     
+    zzz=zzz + co2now[x];
+    delay(5000);
+    mmm=mmm + co2now2[x];  
+  }
+  {
+  // Wait a few seconds between measurements.
+  delay(2000);
+  
+    Serial.print("AirQuality=");
+  Serial.print(co2ppm);  // prints the value read
+  Serial.println(" PPM");
+  Serial.print("AirQuality2=");
+  Serial.print(co2ppm2);  // prints the value read
+  Serial.println(" PPM");
+  Serial.print("rate=");
+  Serial.print(co2rate);
+  Serial.print("===========================");
+  delay(50);            
+  
+  }
+}
