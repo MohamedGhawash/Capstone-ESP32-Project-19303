@@ -101,7 +101,7 @@ void loop()
   co2ppm = co2raw - co2Zero;                 //get calculated ppm
   co2raw2 = mmm/10;
   co2ppm2 = co2raw2 - co2Zero;
-  co2rate = co2ppm2 - co2ppm;
+  co2rate = co2ppm - co2ppm2;
 
   
  ThingSpeak.setField(1,t);
